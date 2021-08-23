@@ -1,5 +1,6 @@
 from flask import Blueprint, request, Response, session
 import os
+from pathlib import Path
 
 import config
 
@@ -9,7 +10,7 @@ import json
 from datetime import date
 import random
 
-api_name = os.path.splitext(os.path.basename(__file__))[0]
+api_name = Path(__file__).stem
 app = Blueprint(api_name, __name__, url_prefix = "/" + api_name)
 
 @app.route("/")

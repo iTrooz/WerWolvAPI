@@ -1,7 +1,5 @@
-from os.path import dirname, basename, isfile, join
-import secrets
+from pathlib import Path
 import importlib
-import glob
 
 import config
 
@@ -15,8 +13,8 @@ def base():
 
 app.secret_key = config.Common.SECRET
 
-modules = glob.glob(join(dirname(__file__), "api/*.py"))
-__all__ = [ basename(f)[:-3] for f in modules if isfile(f) and not f.endswith('__init__.py')]
+modules = (Path(__file__).parent / "api").glob("*.py")
+__all__ = [ f.stem for f in modules if f.is_file() and f.name != '__init__.py']
 for file in __all__:
     module = importlib.import_module("api." + file)
     app.register_blueprint(module.app)
