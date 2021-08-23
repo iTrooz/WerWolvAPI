@@ -1,7 +1,7 @@
 from flask import Blueprint, request, Response, session
 import os
 
-from .. import config
+import config
 
 import hashlib
 import hmac
