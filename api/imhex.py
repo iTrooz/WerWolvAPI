@@ -1,6 +1,7 @@
 from flask import Blueprint, request, Response, session
 import os
 from pathlib import Path
+import hashlib
 
 import config
 
@@ -35,20 +36,20 @@ def pattern_hook():
 
 @app.route("/content")
 def content():   
+    if "contents_up_to_date" not in session:
+        session["contents_up_to_date"] = False
+
     if not session["contents_up_to_date"]:
-        session["contents"]["patterns"] = []
-        for file in os.listdir("./data/ImHex-Patterns/patterns"):
-            session["contents"]["patterns"].append("https://raw.githubusercontent.com/WerWolv/ImHex-Patterns/master/patterns/" + file)
+        session["contents"] = { }
 
-        session["contents"]["includes"] = []
-        for file in os.listdir("./data/ImHex-Patterns/includes"):
-            session["contents"]["includes"].append("https://raw.githubusercontent.com/WerWolv/ImHex-Patterns/master/includes/" + file)
-
-        session["contents"]["magic"] = []
-        for file in os.listdir("./data/ImHex-Patterns/magic"):
-            session["contents"]["magic"].append("https://raw.githubusercontent.com/WerWolv/ImHex-Patterns/master/magic/" + file)
-
-
+        for folder in [ "patterns", "includes", "magic" ]:
+            session["contents"][folder] = []
+            for file in os.listdir(Path("./data/ImHex-Patterns") / folder):
+                with open(Path("./data/ImHex-Patterns") /folder / file, "rb") as fd:
+                    session["contents"][folder].append({
+                        "file": "https://raw.githubusercontent.com/WerWolv/ImHex-Patterns/master" + "/" + folder + "/" + file,
+                        "hash": hashlib.sha256(fd.read()).hexdigest()
+                        })
 
         session["contents_up_to_date"] = True
 

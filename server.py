@@ -14,7 +14,7 @@ def base():
 app.secret_key = config.Common.SECRET
 
 modules = (Path(__file__).parent / "api").glob("*.py")
-__all__ = [ f.stem for f in modules if f.is_file() and f.name != '__init__.py']
+__all__ = [f.stem for f in modules if f.is_file() and f.name != '__init__.py']
 for file in __all__:
     module = importlib.import_module("api." + file)
     app.register_blueprint(module.app)
