@@ -28,32 +28,32 @@ def pattern_hook():
         os.system("git -C ./data/ImHex-Patterns clean -fd")
         os.system("git -C ./data/ImHex-Patterns pull")
 
-        session["contents_up_to_date"] = False
+        session["store_up_to_date"] = False
 
         return Response(status = 200)
     else:
         return Response(status = 401)
 
-@app.route("/content")
-def content():   
-    if "contents_up_to_date" not in session:
-        session["contents_up_to_date"] = False
+@app.route("/store")
+def store():   
+    if "store_up_to_date" not in session:
+        session["store_up_to_date"] = False
 
-    if not session["contents_up_to_date"]:
-        session["contents"] = { }
+    if not session["store_up_to_date"]:
+        session["store"] = { }
 
         for folder in [ "patterns", "includes", "magic" ]:
-            session["contents"][folder] = []
+            session["store"][folder] = []
             for file in os.listdir(Path("./data/ImHex-Patterns") / folder):
                 with open(Path("./data/ImHex-Patterns") /folder / file, "rb") as fd:
-                    session["contents"][folder].append({
+                    session["store"][folder].append({
                         "file": "https://raw.githubusercontent.com/WerWolv/ImHex-Patterns/master" + "/" + folder + "/" + file,
                         "hash": hashlib.sha256(fd.read()).hexdigest()
                         })
 
-        session["contents_up_to_date"] = True
+        session["store_up_to_date"] = True
 
-    return session["contents"]
+    return session["store"]
 
 @app.route("/tip")
 def get_tip():    
