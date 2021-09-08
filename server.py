@@ -2,9 +2,12 @@ from pathlib import Path
 import importlib
 
 import config
+from cache import cache
 
 from flask import Flask
 app = Flask(__name__)
+
+cache.init_app(app = app, config={ "CACHE_TYPE": "filesystem", "CACHE_DIR": Path("./data/cache")})
 
 @app.route("/")
 def base():
@@ -20,4 +23,4 @@ for file in __all__:
     app.register_blueprint(module.app)
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0')
+    app.run()
