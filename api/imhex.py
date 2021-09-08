@@ -42,10 +42,6 @@ def update_data():
     cache.set("store_up_to_date", False)
     cache.set("updater_running", False)
 
-@app.route("/")
-def base():
-    return api_name.capitalize() + " API Endpoint"
-
 @app.route("/pattern_hook", methods = [ 'POST' ])
 def pattern_hook():
     signature = hmac.new(config.ImHexApi.SECRET, request.data, hashlib.sha1).hexdigest()

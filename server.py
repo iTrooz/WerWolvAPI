@@ -20,6 +20,11 @@ modules = (Path(__file__).parent / "api").glob("*.py")
 __all__ = [f.stem for f in modules if f.is_file() and f.name != '__init__.py']
 for file in __all__:
     module = importlib.import_module("api." + file)
+
+    @module.app.route("/")
+    def base():
+        return file.capitalize() + " API Endpoint"
+
     app.register_blueprint(module.app)
 
 if __name__ == "__main__":
