@@ -18,29 +18,46 @@ import random
 api_name = Path(__file__).stem
 app = Blueprint(api_name, __name__, url_prefix = "/" + api_name)
 
+app_data_folder = Path(config.Common.DATA_FOLDER) / api_name
+app_content_folder = Path(config.Common.CONTENT_FOLDER) / api_name
+
+
+def setup():
+    os.system(f"git -C {app_data_folder} clone https://github.com/WerWolv/ImHex-Patterns")
+    os.system(f"git -C {app_data_folder} clone https://github.com/file/file")
+
+def init():
+    pass
 
 def update_git_repo(repo):
-    repo_dir = f"./data/{repo}"
+    repo_dir = app_data_folder / repo
     subprocess.call([ "git", "reset", "--hard" ], cwd = repo_dir)
     subprocess.call([ "git", "clean", "-fd" ], cwd = repo_dir)
     subprocess.call([ "git", "pull" ], cwd = repo_dir)
 
 def update_data():
-    print("Repo update detected, pulling changes...")
-    update_git_repo("ImHex-Patterns")
-    update_git_repo("file")
-    
-    print("Building...")
-    
-    file_repo_dir = "./data/file"
-    subprocess.call([ "autoreconf", "-f", "-i" ], cwd = file_repo_dir)
-    subprocess.call([ "make", "distclean" ], cwd = file_repo_dir)
-    subprocess.call([ "./configure", "--disable-silent-rules" ], cwd = file_repo_dir)
-    subprocess.call([ "make", "-j" ], cwd = file_repo_dir)
-    shutil.copyfile("./data/file/magic/magic.mgc", "./data/ImHex-Patterns/magic/standard_magic.mgc")
-    
-    cache.set("store_up_to_date", False)
-    cache.set("updater_running", False)
+    try:
+        print("Pulling changes...")
+        update_git_repo("ImHex-Patterns")
+        update_git_repo("file")
+        
+        print("Building...")
+        
+        file_repo_dir = app_data_folder / "file"
+        subprocess.call([ "autoreconf", "-f", "-i" ], cwd = file_repo_dir)
+        subprocess.call([ "make", "distclean" ], cwd = file_repo_dir)
+        subprocess.call([ "./configure", "--disable-silent-rules" ], cwd = file_repo_dir)
+        subprocess.call([ "make", "-j" ], cwd = file_repo_dir)
+        shutil.copyfile(app_data_folder / "file/magic/magic.mgc", app_data_folder / "ImHex-Patterns/magic/standard_magic.mgc")
+
+        shutil.rmtree(app_content_folder)
+        os.makedirs(app_content_folder)
+
+        for folder in [ "includes", "magic", "patterns" ]:
+            shutil.copytree(app_data_folder / "ImHex-Patterns" / folder, app_content_folder / folder)
+    finally:
+        cache.set("store_up_to_date", False)
+        cache.set("updater_running", False)
 
 @app.route("/pattern_hook", methods = [ 'POST' ])
 def pattern_hook():
@@ -51,6 +68,7 @@ def pattern_hook():
 
 
     if hmac.compare_digest(signature, request.headers['X-Hub-Signature'].split('=')[1]):
+        print("Repository push detected!")
 
         if not cache.get("updater_running"):
             cache.set("updater_running", True)
@@ -69,13 +87,13 @@ def store():
         store = {}
         for folder in [ "patterns", "includes", "magic" ]:
             store[folder] = []
-            for file in os.listdir(Path("./data/ImHex-Patterns") / folder):
-                with open(Path("./data/ImHex-Patterns") / folder / file, "rb") as fd:
+            for file in os.listdir(app_data_folder/ "ImHex-Patterns" / folder):
+                with open(app_data_folder / "ImHex-Patterns" / folder / file, "rb") as fd:
                     store[folder].append({
                         "name": Path(file).stem.replace("_", " ").title(),
                         "desc": "",
                         "file": file,
-                        "url": "https://raw.githubusercontent.com/WerWolv/ImHex-Patterns/master" + "/" + folder + "/" + file,
+                        "url": f"https://api.werwolv.net/content/imhex/{folder}/{file}",
                         "hash": hashlib.sha256(fd.read()).hexdigest()
                         })
 
@@ -91,8 +109,8 @@ def get_tip():
     if cache.get("tip_update_date") != current_day:
         cache.set("tip_update_date", current_day)
 
-        files = os.listdir("./data/ImHex-Patterns/tips")
-        file = "./data/ImHex-Patterns/tips/" + random.choice(files)
+        files = os.listdir(app_data_folder / "ImHex-Patterns/tips")
+        file = app_data_folder / "ImHex-Patterns/tips" / random.choice(files)
         
         with open(file) as fd:
             json_data = json.load(fd)

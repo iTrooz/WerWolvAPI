@@ -4,14 +4,20 @@ import importlib
 import config
 from cache import cache
 
-from flask import Flask
+from flask import Flask, send_from_directory
 app = Flask(__name__)
 
 cache.init_app(app = app, config={ "CACHE_TYPE": "filesystem", "CACHE_DIR": Path("./data/cache")})
+cache.clear()
 
 @app.route("/")
 def base():
     return "WerWolv's API Endpoints"
+
+@app.route("/content/<path:filename>")
+def download_content(filename):    
+    content_path = Path(app.root_path) / "content"
+    return send_from_directory(directory = content_path, path = filename, as_attachment = True)
 
 
 app.secret_key = config.Common.SECRET
@@ -25,6 +31,7 @@ for file in __all__:
     def base():
         return file.capitalize() + " API Endpoint"
 
+    module.init()
     app.register_blueprint(module.app)
 
 if __name__ == "__main__":
