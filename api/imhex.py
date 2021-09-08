@@ -44,7 +44,7 @@ def update_data():
 
 @app.route("/")
 def base():
-    return Response(status=200)
+    return api_name.capitalize() + " API Endpoint"
 
 @app.route("/pattern_hook", methods = [ 'POST' ])
 def pattern_hook():
