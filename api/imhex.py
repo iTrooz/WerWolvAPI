@@ -22,6 +22,9 @@ app_data_folder = Path(config.Common.DATA_FOLDER) / api_name
 app_content_folder = Path(config.Common.CONTENT_FOLDER) / api_name
 
 
+store_folders = [ "patterns", "includes", "magic", "constants" ]
+tips_folder = "tips"
+
 def setup():
     os.system(f"git -C {app_data_folder} clone https://github.com/WerWolv/ImHex-Patterns")
     os.system(f"git -C {app_data_folder} clone https://github.com/file/file")
@@ -53,7 +56,7 @@ def update_data():
         shutil.rmtree(app_content_folder)
         os.makedirs(app_content_folder)
 
-        for folder in [ "includes", "magic", "patterns" ]:
+        for folder in store_folders:
             shutil.copytree(app_data_folder / "ImHex-Patterns" / folder, app_content_folder / folder)
     finally:
         cache.set("store_up_to_date", False)
@@ -85,7 +88,7 @@ def store():
 
     if not cache.get("store_up_to_date"):
         store = {}
-        for folder in [ "patterns", "includes", "magic" ]:
+        for folder in store_folders:
             store[folder] = []
             for file in os.listdir(app_data_folder/ "ImHex-Patterns" / folder):
                 with open(app_data_folder / "ImHex-Patterns" / folder / file, "rb") as fd:
@@ -109,8 +112,8 @@ def get_tip():
     if cache.get("tip_update_date") != current_day:
         cache.set("tip_update_date", current_day)
 
-        files = os.listdir(app_data_folder / "ImHex-Patterns/tips")
-        file = app_data_folder / "ImHex-Patterns/tips" / random.choice(files)
+        files = os.listdir(app_data_folder / "ImHex-Patterns" / tips_folder)
+        file = app_data_folder / "ImHex-Patterns" / tips_folder / random.choice(files)
         
         with open(file) as fd:
             json_data = json.load(fd)
