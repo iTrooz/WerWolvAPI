@@ -45,6 +45,7 @@ def update_data():
         update_git_repo("ImHex-Patterns")
         update_git_repo("file")
         
+        """
         print("Building...")
         file_repo_dir = app_data_folder / "file"
         subprocess.call([ "autoreconf", "-f", "-i" ], cwd = file_repo_dir)
@@ -52,19 +53,16 @@ def update_data():
         subprocess.call([ "./configure", "--disable-silent-rules" ], cwd = file_repo_dir)
         subprocess.call([ "make", "-j" ], cwd = file_repo_dir)
         shutil.copyfile(app_data_folder / "file/magic/magic.mgc", app_data_folder / "ImHex-Patterns/magic/standard_magic.mgc")
-        
+        """
         shutil.rmtree(app_content_folder)
         os.makedirs(app_content_folder)
 
         print("Taring...")
         for store_folder in store_folders:
             store_path = app_data_folder / "ImHex-Patterns" / store_folder
-            for entry in os.listdir(store_path):
-                if Path(store_path / entry).is_dir():
-                    tar_file_path = store_path / (entry + ".tar")
-                    if os.path.exists(tar_file_path):
-                        os.remove(tar_file_path)
-                    shutil.make_archive(tar_file_path, "tar", store_path / entry)
+            for entry in store_path.iterdir():
+                if entry.is_dir():
+                    shutil.make_archive(entry, "tar", entry)
 
         print("Copying...")
         for folder in store_folders:
@@ -96,21 +94,21 @@ def pattern_hook():
 
 @app.route("/store")
 def store():   
-
+    update_data()
     if not cache.get("store_up_to_date"):
         store = {}
         for folder in store_folders:
             store[folder] = []
-            for file in os.listdir(app_data_folder/ "ImHex-Patterns" / folder):
-                full_path = app_data_folder / "ImHex-Patterns" / folder / file
-                if not full_path.is_dir():
-                    with open(full_path, "rb") as fd:
+            for file in (app_data_folder/ "ImHex-Patterns" / folder).iterdir():
+                if not file.is_dir():
+                    with open(file, "rb") as fd:
                         store[folder].append({
                             "name": Path(file).stem.replace("_", " ").title(),
                             "desc": "",
-                            "file": file,
+                            "file": str(file),
                             "url": f"{request.root_url}/content/imhex/{folder}/{file}",
-                            "hash": hashlib.sha256(fd.read()).hexdigest()
+                            "hash": hashlib.sha256(fd.read()).hexdigest(),
+                            "folder": Path(file).suffix == ".tar"
                             })
 
         cache.set("store_up_to_date", True)
@@ -125,10 +123,9 @@ def get_tip():
     if cache.get("tip_update_date") != current_day:
         cache.set("tip_update_date", current_day)
 
-        files = os.listdir(app_data_folder / "ImHex-Patterns" / tips_folder)
-        file = app_data_folder / "ImHex-Patterns" / tips_folder / random.choice(files)
+        files = [file for file in (app_data_folder / "ImHex-Patterns" / tips_folder).iterdir()]
         
-        with open(file) as fd:
+        with open(random.choice(files)) as fd:
             json_data = json.load(fd)
             tips = json_data['tips']
             cache.set("tip", random.choice(tips))
