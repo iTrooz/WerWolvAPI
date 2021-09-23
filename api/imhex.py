@@ -14,6 +14,7 @@ import hmac
 import json
 from datetime import date
 import random
+import tarfile
 
 api_name = Path(__file__).stem
 app = Blueprint(api_name, __name__, url_prefix = "/" + api_name)
@@ -22,11 +23,11 @@ app_data_folder = Path(config.Common.DATA_FOLDER) / api_name
 app_content_folder = Path(config.Common.CONTENT_FOLDER) / api_name
 
 
-store_folders = [ "patterns", "includes", "magic", "constants" ]
+store_folders = [ "patterns", "includes", "magic", "constants", "yara" ]
 tips_folder = "tips"
 
 def setup():
-    os.system(f"git -C {app_data_folder} clone https://github.com/WerWolv/ImHex-Patterns")
+    os.system(f"git -C {app_data_folder} clone https://github.com/WerWolv/ImHex-Patterns --recurse-submodules")
     os.system(f"git -C {app_data_folder} clone https://github.com/file/file")
 
 def init():
@@ -45,17 +46,27 @@ def update_data():
         update_git_repo("file")
         
         print("Building...")
-        
         file_repo_dir = app_data_folder / "file"
         subprocess.call([ "autoreconf", "-f", "-i" ], cwd = file_repo_dir)
         subprocess.call([ "make", "distclean" ], cwd = file_repo_dir)
         subprocess.call([ "./configure", "--disable-silent-rules" ], cwd = file_repo_dir)
         subprocess.call([ "make", "-j" ], cwd = file_repo_dir)
         shutil.copyfile(app_data_folder / "file/magic/magic.mgc", app_data_folder / "ImHex-Patterns/magic/standard_magic.mgc")
-
+        
         shutil.rmtree(app_content_folder)
         os.makedirs(app_content_folder)
 
+        print("Taring...")
+        for store_folder in store_folders:
+            store_path = app_data_folder / "ImHex-Patterns" / store_folder
+            for entry in os.listdir(store_path):
+                if Path(store_path / entry).is_dir():
+                    tar_file_path = store_path / (entry + ".tar")
+                    if os.path.exists(tar_file_path):
+                        os.remove(tar_file_path)
+                    shutil.make_archive(tar_file_path, "tar", store_path / entry)
+
+        print("Copying...")
         for folder in store_folders:
             shutil.copytree(app_data_folder / "ImHex-Patterns" / folder, app_content_folder / folder)
     finally:
@@ -91,14 +102,16 @@ def store():
         for folder in store_folders:
             store[folder] = []
             for file in os.listdir(app_data_folder/ "ImHex-Patterns" / folder):
-                with open(app_data_folder / "ImHex-Patterns" / folder / file, "rb") as fd:
-                    store[folder].append({
-                        "name": Path(file).stem.replace("_", " ").title(),
-                        "desc": "",
-                        "file": file,
-                        "url": f"https://api.werwolv.net/content/imhex/{folder}/{file}",
-                        "hash": hashlib.sha256(fd.read()).hexdigest()
-                        })
+                full_path = app_data_folder / "ImHex-Patterns" / folder / file
+                if not full_path.is_dir():
+                    with open(full_path, "rb") as fd:
+                        store[folder].append({
+                            "name": Path(file).stem.replace("_", " ").title(),
+                            "desc": "",
+                            "file": file,
+                            "url": f"{request.root_url}/content/imhex/{folder}/{file}",
+                            "hash": hashlib.sha256(fd.read()).hexdigest()
+                            })
 
         cache.set("store_up_to_date", True)
         cache.set("store", store)
