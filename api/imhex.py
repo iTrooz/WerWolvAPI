@@ -94,7 +94,6 @@ def pattern_hook():
 
 @app.route("/store")
 def store():   
-    update_data()
     if not cache.get("store_up_to_date"):
         store = {}
         for folder in store_folders:
