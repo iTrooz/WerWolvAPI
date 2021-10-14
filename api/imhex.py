@@ -45,7 +45,6 @@ def update_data():
         update_git_repo("ImHex-Patterns")
         update_git_repo("file")
         
-        """
         print("Building...")
         file_repo_dir = app_data_folder / "file"
         subprocess.call([ "autoreconf", "-f", "-i" ], cwd = file_repo_dir)
@@ -53,7 +52,7 @@ def update_data():
         subprocess.call([ "./configure", "--disable-silent-rules" ], cwd = file_repo_dir)
         subprocess.call([ "make", "-j" ], cwd = file_repo_dir)
         shutil.copyfile(app_data_folder / "file/magic/magic.mgc", app_data_folder / "ImHex-Patterns/magic/standard_magic.mgc")
-        """
+
         shutil.rmtree(app_content_folder)
         os.makedirs(app_content_folder)
 
@@ -105,7 +104,7 @@ def store():
                             "name": Path(file).stem.replace("_", " ").title(),
                             "desc": "",
                             "file": str(file),
-                            "url": f"{request.root_url}/content/imhex/{folder}/{file}",
+                            "url": f"{request.root_url}content/imhex/{folder}/{file.name}",
                             "hash": hashlib.sha256(fd.read()).hexdigest(),
                             "folder": Path(file).suffix == ".tar"
                             })
