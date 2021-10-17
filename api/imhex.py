@@ -103,7 +103,7 @@ def store():
                         store[folder].append({
                             "name": Path(file).stem.replace("_", " ").title(),
                             "desc": "",
-                            "file": f"{folder}/{file.name}",
+                            "file": file.name,
                             "url": f"{request.root_url}content/imhex/{folder}/{file.name}",
                             "hash": hashlib.sha256(fd.read()).hexdigest(),
                             "folder": Path(file).suffix == ".tar"
