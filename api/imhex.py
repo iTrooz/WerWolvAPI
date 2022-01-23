@@ -23,7 +23,7 @@ app_data_folder = Path(config.Common.DATA_FOLDER) / api_name
 app_content_folder = Path(config.Common.CONTENT_FOLDER) / api_name
 
 
-store_folders = [ "patterns", "includes", "magic", "constants", "yara" ]
+store_folders = [ "patterns", "includes", "magic", "constants", "yara", "encodings" ]
 tips_folder = "tips"
 
 def setup():
@@ -66,6 +66,8 @@ def update_data():
         print("Copying...")
         for folder in store_folders:
             shutil.copytree(app_data_folder / "ImHex-Patterns" / folder, app_content_folder / folder)
+
+        print("Done!");
     finally:
         cache.set("store_up_to_date", False)
         cache.set("updater_running", False)
