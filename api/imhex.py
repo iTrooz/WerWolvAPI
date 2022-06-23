@@ -43,6 +43,7 @@ def update_data():
     try:
         print("Pulling changes...")
         update_git_repo("ImHex-Patterns")
+        """
         update_git_repo("file")
         
         print("Building...")
@@ -51,7 +52,9 @@ def update_data():
         subprocess.call([ "make", "distclean" ], cwd = file_repo_dir)
         subprocess.call([ "./configure", "--disable-silent-rules" ], cwd = file_repo_dir)
         subprocess.call([ "make", "-j" ], cwd = file_repo_dir)
-        shutil.copyfile(app_data_folder / "file/magic/magic.mgc", app_data_folder / "ImHex-Patterns/magic/standard_magic.mgc")
+
+        """
+        shutil.copyfile(Path("/usr/share/file/misc/magic.mgc"), app_data_folder / "ImHex-Patterns/magic/standard_magic.mgc")
 
         shutil.rmtree(app_content_folder)
         os.makedirs(app_content_folder)
@@ -65,7 +68,7 @@ def update_data():
 
         print("Copying...")
         for folder in store_folders:
-            shutil.copytree(app_data_folder / "ImHex-Patterns" / folder, app_content_folder / folder)
+            shutil.copytree(app_data_folder / "ImHex-Patterns" / folder, app_content_folder / folder, False, shutil.ignore_patterns('_schema.json'))
 
         print("Done!");
     finally:
@@ -99,7 +102,7 @@ def store():
         store = {}
         for folder in store_folders:
             store[folder] = []
-            for file in (app_data_folder/ "ImHex-Patterns" / folder).iterdir():
+            for file in (Path(".") / "content" / "imhex" / folder).iterdir():
                 if not file.is_dir():
                     with open(file, "rb") as fd:
                         store[folder].append({
