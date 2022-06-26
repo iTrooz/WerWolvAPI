@@ -127,6 +127,7 @@ def get_tip():
         cache.set("tip_update_date", current_day)
 
         files = [file for file in (app_data_folder / "ImHex-Patterns" / tips_folder).iterdir()]
+        files = [file for file in files if file.name != "_schema.json"]
         
         with open(random.choice(files)) as fd:
             json_data = json.load(fd)
