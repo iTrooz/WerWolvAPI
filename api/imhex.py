@@ -15,6 +15,7 @@ import json
 from datetime import date
 import random
 import tarfile
+import requests
 
 api_name = Path(__file__).stem
 app = Blueprint(api_name, __name__, url_prefix = "/" + api_name)
@@ -136,3 +137,69 @@ def get_tip():
 
 
     return cache.get("tip")
+
+def get_tag():
+    return requests.get("https://api.github.com/repos/WerWolv/ImHex/releases/latest").json()["tag_name"]
+
+@app.route("/update/<release>/<os>")
+def get_update_link(release, os):
+    tag = get_tag()
+
+    if release == "latest":
+        base = f"https://github.com/WerWolv/ImHex/releases/download/{tag}/imhex-{tag[1:]}"
+        if os == "win-msi":
+            return f"{base}-win64.msi"
+        elif os == "win-zip":
+            return f"{base}-Windows-Portable.zip"
+        elif os == "win-zip-nogpu":
+            return f"{base}-Windows-Portable-NoGPU.zip"
+        elif os == "macos-dmg":
+            return f"{base}-macOS.dmg"
+        elif os == "macos-dmg-nogpu":
+            return f"{base}-macOS-NoGPU.dmg"
+        elif os == "linux-flatpak":
+            return "https://flathub.org/apps/details/net.werwolv.ImHex"
+        elif os == "linux-deb":
+            return f"{base}-Ubuntu-22.04.deb"
+        elif os == "linux-appimage":
+            return f"{base}.AppImage"
+        elif os == "linux-arch":
+            return f"{base}-ArchLinux.pkg.tar.zst"
+        elif os == "linux-fedora-latest":
+            return f"{base}-Fedora-Latest.rpm"
+        elif os == "linux-fedora-rawhide":
+            return f"{base}-Fedora-Rawhide.rpm"
+        else:
+            return ""
+    elif release == "nightly":
+        base = "https://nightly.link/WerWolv/ImHex/workflows/build/master"
+        if os == "win-msi":
+            return f"{base}/Windows%20Installer.zip"
+        elif os == "win-zip":
+            return f"{base}/Windows%20Portable.zip"
+        elif os == "win-zip-nogpu":
+            return f"{base}/Windows%20Portable%20NoGPU.zip"
+        elif os == "macos-dmg":
+            return f"{base}/macOS%20DMG.zip"
+        elif os == "macos-dmg-nogpu":
+            return f"{base}/macOS%20DMG-NoGPU.zip"
+        elif os == "linux-flatpak":
+            return "https://flathub.org/apps/details/net.werwolv.ImHex"
+        elif os == "linux-deb":
+            return f"{base}/Ubuntu%2022.04%20DEB.zip"
+        elif os == "linux-appimage":
+            return f"{base}/Linux%20AppImage.zip"
+        elif os == "linux-arch":
+            return f"{base}/ArchLinux%20.pkg.tar.zst.zip"
+        elif os == "linux-fedora-latest":
+            return f"{base}/Fedora%20Latest%20RPM.zip"
+        elif os == "linux-fedora-rawhide":
+            return f"{base}/Fedora%20Rawhide%20RPM.zip"
+        else:
+            return ""
+    else:
+        return ""
+
+@app.route("/pattern_count")
+def get_pattern_count():
+    return str(len([file for file in (app_data_folder / "ImHex-Patterns" / "patterns").iterdir() if file.is_file()]))
