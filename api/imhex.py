@@ -24,7 +24,7 @@ app_data_folder = Path(config.Common.DATA_FOLDER) / api_name
 app_content_folder = Path(config.Common.CONTENT_FOLDER) / api_name
 
 
-store_folders = [ "patterns", "includes", "magic", "constants", "yara", "encodings" ]
+store_folders = [ "patterns", "includes", "magic", "constants", "yara", "encodings", "nodes", "themes" ]
 tips_folder = "tips"
 
 def setup():
@@ -32,7 +32,7 @@ def setup():
     os.system(f"git -C {app_data_folder} clone https://github.com/file/file")
 
 def init():
-    pass
+    update_data()
 
 def update_git_repo(repo):
     repo_dir = app_data_folder / repo
