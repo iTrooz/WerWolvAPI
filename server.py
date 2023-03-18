@@ -1,3 +1,4 @@
+import mimetypes
 from pathlib import Path
 import importlib
 
@@ -17,7 +18,7 @@ def base():
 @app.route("/content/<path:filename>")
 def download_content(filename):    
     content_path = Path(app.root_path) / "content"
-    return send_from_directory(directory = content_path, path = filename, as_attachment = True)
+    return send_from_directory(directory = content_path, path = filename, as_attachment = True, mimetype="Content-Type: application/octet-stream")
 
 
 app.secret_key = config.Common.SECRET

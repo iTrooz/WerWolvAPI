@@ -44,18 +44,12 @@ def update_data():
     try:
         print("Pulling changes...")
         update_git_repo("ImHex-Patterns")
-        """
         update_git_repo("file")
         
         print("Building...")
         file_repo_dir = app_data_folder / "file"
-        subprocess.call([ "autoreconf", "-f", "-i" ], cwd = file_repo_dir)
-        subprocess.call([ "make", "distclean" ], cwd = file_repo_dir)
-        subprocess.call([ "./configure", "--disable-silent-rules" ], cwd = file_repo_dir)
-        subprocess.call([ "make", "-j" ], cwd = file_repo_dir)
-
-        """
-        shutil.copyfile(Path("/usr/share/file/misc/magic.mgc"), app_data_folder / "ImHex-Patterns/magic/standard_magic.mgc")
+        
+        shutil.copytree(f'{file_repo_dir}/magic/Magdir/', app_data_folder / "ImHex-Patterns/magic/standard_magic")
 
         shutil.rmtree(app_content_folder)
         os.makedirs(app_content_folder)
