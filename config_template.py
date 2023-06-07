@@ -11,7 +11,7 @@ class Common:
 class ImHexApi:
     SECRET = b''
 
-
+    CRASH_WEBHOOK = ""
 
 
 def setup():

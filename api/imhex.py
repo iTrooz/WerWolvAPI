@@ -91,6 +91,26 @@ def pattern_hook():
     else:
         return Response(status = 401)
 
+@app.route("/crash_upload", methods = [ 'POST' ])
+def crash_upload():
+    if "file" not in request.files:
+        return Response(status = 400)
+
+    file = request.files["file"]
+
+    if file.filename == "":
+        return Response(status = 400)
+
+    webhook_data = {
+        "content": "New crash report!"
+    }
+
+    form_data = {
+        "file": (file.filename, file.stream, file.mimetype)
+    }
+
+    return requests.post(config.ImHexApi.CRASH_WEBHOOK, files = form_data).text
+
 @app.route("/store")
 def store():   
     if not cache.get("store_up_to_date"):
