@@ -20,7 +20,7 @@ telemetry_tables = {
 
 telemetry_db = define_database("imhex/telemetry", telemetry_tables)
 
-current_statistics = None
+current_statistics = {}
 
 def update_telemetry(uuid, version, os):
     do_update(telemetry_db, ["uuid", "version", "os"], "telemetry", {

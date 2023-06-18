@@ -239,7 +239,7 @@ def post_telemetry():
 @app.route("/telemetry", methods = [ 'GET' ])
 def get_telemetry():
     if "Authorization" in request.headers:
-        if secrets.compare_digest(request.headers["Authorization"], config.ImHexApi.SECRET):
+        if secrets.compare_digest(request.headers["Authorization"].encode(), config.ImHexApi.SECRET):
             return current_statistics
         else:
             return Response(status = 401)
