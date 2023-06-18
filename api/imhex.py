@@ -11,11 +11,14 @@ from cache import cache
 
 import hashlib
 import hmac
+import secrets
 import json
 from datetime import date
 import random
 import tarfile
 import requests
+
+from telemetry import update_telemetry, increment_crash_count, current_statistics, setup_background_task
 
 api_name = Path(__file__).stem
 app = Blueprint(api_name, __name__, url_prefix = "/" + api_name)
@@ -23,13 +26,14 @@ app = Blueprint(api_name, __name__, url_prefix = "/" + api_name)
 app_data_folder = Path(config.Common.DATA_FOLDER) / api_name
 app_content_folder = Path(config.Common.CONTENT_FOLDER) / api_name
 
-
 store_folders = [ "patterns", "includes", "magic", "constants", "yara", "encodings", "nodes", "themes" ]
 tips_folder = "tips"
 
 def setup():
     os.system(f"git -C {app_data_folder} clone https://github.com/WerWolv/ImHex-Patterns --recurse-submodules")
     os.system(f"git -C {app_data_folder} clone https://github.com/file/file")
+    print("Setting up statistics background task...")
+    setup_background_task()
 
 def init():
     update_data()
@@ -51,7 +55,8 @@ def update_data():
         
         shutil.copytree(f'{file_repo_dir}/magic/Magdir/', app_data_folder / "ImHex-Patterns/magic/standard_magic")
 
-        shutil.rmtree(app_content_folder)
+        if app_content_folder.exists():
+            shutil.rmtree(app_content_folder)
         os.makedirs(app_content_folder)
 
         print("Taring...")
@@ -100,6 +105,8 @@ def crash_upload():
 
     if file.filename == "":
         return Response(status = 400)
+
+    increment_crash_count()
 
     webhook_data = {
         "content": "New crash report!"
@@ -214,6 +221,31 @@ def get_update_link(release, os):
     else:
         return ""
 
+required_telemetry_post_fields = [ "uuid", "version", "os" ]
+@app.route("/telemetry", methods = [ 'POST' ])
+def post_telemetry():
+    data = request.json
+
+    if data is None:
+        return Response(status = 400)
+    
+    if not all(key in data for key in required_telemetry_post_fields):
+        return Response(status = 400)
+    
+    update_telemetry(data["uuid"], data["version"], data["os"])
+
+    return Response(status = 200, response="OK")
+
+@app.route("/telemetry", methods = [ 'GET' ])
+def get_telemetry():
+    if "Authorization" in request.headers:
+        if secrets.compare_digest(request.headers["Authorization"], config.ImHexApi.SECRET):
+            return current_statistics
+        else:
+            return Response(status = 401)
+    
+    return Response(status = 401)
+    
 @app.route("/pattern_count")
 def get_pattern_count():
     return str(len([file for file in (app_data_folder / "ImHex-Patterns" / "patterns").iterdir() if file.is_file()]))
