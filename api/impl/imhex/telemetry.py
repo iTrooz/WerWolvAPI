@@ -1,4 +1,4 @@
-from database import define_database, do_update
+from api.impl.imhex.database import define_database, do_update
 from datetime import date, datetime
 
 # telemetry database

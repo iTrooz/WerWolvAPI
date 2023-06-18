@@ -18,7 +18,7 @@ import random
 import tarfile
 import requests
 
-from telemetry import update_telemetry, increment_crash_count, current_statistics, setup_background_task
+from api.impl.imhex.telemetry import update_telemetry, increment_crash_count, current_statistics, setup_background_task
 
 api_name = Path(__file__).stem
 app = Blueprint(api_name, __name__, url_prefix = "/" + api_name)
