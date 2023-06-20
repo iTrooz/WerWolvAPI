@@ -1,22 +1,23 @@
 from api.impl.imhex.database import define_database, do_update
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 # telemetry database
 telemetry_primary_structure = {
     "uuid": "varchar(36) primary key", # make uuid unique, so that it only records latest launch
     "version": "varchar(30)",
     "os": "varchar(30)",
-    "timestamp": "datetime default current_timestamp"
+    "time": "datetime default current_timestamp"
 }
 
 telemetry_crash_count_history_structure = {
-    "timestamp": "date default current_date primary key",
+    "time": "date default current_date primary key",
     "crash_count": "int"
 }
 
 telemetry_unique_users_history_structure = {
-    "timestamp": "date default current_date primary key",
-    "unique_users": "int" # unique users is always increasing, so we can just store the latest value
+    "time": "date default current_date primary key",
+    "unique_users_total": "int", # unique users is always increasing, so we can just store the latest value
+    "unique_users": "int" # unique users that day
 }
 
 telemetry_tables = {
@@ -34,7 +35,7 @@ def update_telemetry(uuid, version, os):
     if telemetry_db.execute("SELECT * FROM telemetry WHERE uuid = ?", (uuid,)).fetchone() is None:
         # increment unique users
         increment_unique_users()
-    do_update(telemetry_db, ["uuid", "version", "os"], "telemetry", {
+    do_update(telemetry_db, "telemetry", {
         "uuid": uuid,
         "version": version,
         "os": os
@@ -44,20 +45,32 @@ def increment_crash_count():
     today = date.today()
     # do some sql magic
     # todo: abstract and generify this
-    telemetry_db.execute("INSERT OR REPLACE INTO crash_count_history (timestamp, crash_count) VALUES (?, COALESCE((SELECT crash_count FROM crash_count_history WHERE timestamp = ?), 0) + 1)", (today, today))
+    telemetry_db.execute("INSERT OR REPLACE INTO crash_count_history (time, crash_count) VALUES (?, COALESCE((SELECT crash_count FROM crash_count_history WHERE time = ?), 0) + 1)", (today, today))
     telemetry_db.commit()
 
 def increment_unique_users():
     today = date.today()
+    yesterday = today - timedelta(days = 1)
     # do some sql magic
     # todo: abstract and generify this
-    # get current unique users
-    current_unique_users = telemetry_db.execute("SELECT unique_users FROM unique_users_history WHERE timestamp = (SELECT MAX(timestamp) FROM unique_users_history)").fetchone()
+    # get unqiue users from today or yesterday
+    current_total_unique_users = telemetry_db.execute("SELECT unique_users_total FROM unique_users_history WHERE time = ?", (today,)).fetchone()
+    if current_total_unique_users is None:
+        current_total_unique_users = telemetry_db.execute("SELECT unique_users_total FROM unique_users_history WHERE time = ?", (yesterday,)).fetchone()
+    if current_total_unique_users is None:
+        current_total_unique_users = 0
+    else:
+        current_total_unique_users = current_total_unique_users[0]
+
+    current_unique_users = telemetry_db.execute("SELECT unique_users FROM unique_users_history WHERE time = ?", (today,)).fetchone()
     if current_unique_users is None:
         current_unique_users = 0
+    else:
+        current_unique_users = current_unique_users[0]
 
-    do_update(telemetry_db, ["timestamp", "unique_users"], "unique_users_history", {
-        "timestamp": today,
+    do_update(telemetry_db, "unique_users_history", {
+        "time": today,
+        "unique_users_total": current_total_unique_users + 1,
         "unique_users": current_unique_users + 1
     })
 
@@ -72,7 +85,7 @@ def make_statistics():
 
     for telemetry in telemetry_data:
         # select the 'os' field
-        _, version, os, timestamp = telemetry
+        _, version, os, time = telemetry
 
         # process os entries
         os_name, os_version, os_architecture = os.split("/")
@@ -109,8 +122,8 @@ def make_statistics():
     crash_histogram = {}
 
     for crash_history in crash_history_data:
-        timestamp, crash_count = crash_history
-        crash_histogram[timestamp] = crash_count
+        time, crash_count = crash_history
+        crash_histogram[time] = crash_count
 
     return {
         "unique_users": unique_users,
