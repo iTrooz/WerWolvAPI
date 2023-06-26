@@ -4,8 +4,14 @@ from datetime import date, datetime, timedelta
 # telemetry database
 telemetry_primary_structure = {
     "uuid": "varchar(36) primary key", # make uuid unique, so that it only records latest launch
-    "version": "varchar(30)",
+    "format_version": "int",
+    "imhex_version": "varchar(30)",
+    "imhex_commit": "varchar(60)",
+    "install_type": "varchar(30)",
     "os": "varchar(30)",
+    "os_version": "varchar(30)",
+    "arch": "varchar(30)",
+    "gpu_vendor": "varchar(30)",
     "time": "datetime default current_timestamp"
 }
 
@@ -30,15 +36,21 @@ telemetry_db = define_database("imhex/telemetry", telemetry_tables)
 
 current_statistics = {}
 
-def update_telemetry(uuid, version, os):
+def update_telemetry(uuid, format_version, imhex_version, imhex_commit, install_type, os, os_version, arch, gpu_vendor):
     # check if the user is already in the database
     if telemetry_db.execute("SELECT * FROM telemetry WHERE uuid = ?", (uuid,)).fetchone() is None:
         # increment unique users
         increment_unique_users()
     do_update(telemetry_db, "telemetry", {
         "uuid": uuid,
-        "version": version,
-        "os": os
+        "format_version": format_version,
+        "imhex_version": imhex_version,
+        "imhex_commit": imhex_commit,
+        "install_type": install_type,
+        "os": os,
+        "os_version": os_version,
+        "arch": arch,
+        "gpu_vendor": gpu_vendor,
     })
 
 def increment_crash_count():

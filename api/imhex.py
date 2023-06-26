@@ -221,7 +221,7 @@ def get_update_link(release, os):
     else:
         return ""
 
-required_telemetry_post_fields = [ "uuid", "version", "os" ]
+required_telemetry_post_fields = [ "uuid", "format_version", "imhex_version", "imhex_commit", "install_type", "os", "os_version", "arch", "gpu_vendor" ]
 @app.route("/telemetry", methods = [ 'POST' ])
 def post_telemetry():
     data = request.json
@@ -229,10 +229,16 @@ def post_telemetry():
     if data is None:
         return Response(status = 400)
     
-    if not all(key in data for key in required_telemetry_post_fields):
+    if not "format_version" in data:
         return Response(status = 400)
     
-    update_telemetry(data["uuid"], data["version"], data["os"])
+    if data["format_version"] == "1":
+        if not all(key in data for key in required_telemetry_post_fields):
+            return Response(status = 400)
+        
+        update_telemetry(data["uuid"], data["format_version"], data["imhex_version"], data["imhex_commit"], data["install_type"], data["os"], data["os_version"], data["arch"], data["gpu_vendor"])
+    else:
+        return Response(status = 400)
 
     return Response(status = 200, response="OK")
 
