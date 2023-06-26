@@ -236,7 +236,9 @@ def post_telemetry():
         if not all(key in data for key in required_telemetry_post_fields):
             return Response(status = 400)
         
-        update_telemetry(data["uuid"], data["format_version"], data["imhex_version"], data["imhex_commit"], data["install_type"], data["os"], data["os_version"], data["arch"], data["gpu_vendor"])
+        thread = threading.Thread(target = update_telemetry, args = (data["uuid"], data["format_version"], data["imhex_version"], data["imhex_commit"], data["install_type"], data["os"], data["os_version"], data["arch"], data["gpu_vendor"]))
+        thread.daemon = True
+        thread.start()
     else:
         return Response(status = 400)
 
