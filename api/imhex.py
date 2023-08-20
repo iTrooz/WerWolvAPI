@@ -117,23 +117,54 @@ def crash_upload():
 
     return requests.post(config.ImHexApi.CRASH_WEBHOOK, files = form_data).text
 
+def get_pattern_metadata(file_path: str, type_: str) -> str:
+    """
+    Get the associated metadata value of a pattern file, using the `plcli` tool. Returns None if the tool is not found
+
+    type: metadata type to get. Valid values (as of 2023/08/21): name, authors, description, mime, version
+
+    if any error occurs, returns an empty string
+    """
+
+    std_folder = Path(config.Common.CONTENT_FOLDER) / "imhex" / "includes"
+    try:
+        return subprocess.check_output(["plcli", "info", file_path, "-t", type_, "-I", std_folder]).decode()
+    except subprocess.CalledProcessError as e:
+        return ""
+
+def is_plcli_found() -> bool:
+    """
+    Check if the plcli executable is found in the PATH
+    """
+    return shutil.which("plcli") is not None
+
+
 @app.route("/store")
 def store():   
     if not cache.get("store_up_to_date"):
+        plcli_found = is_plcli_found()
         store = {}
         for folder in store_folders:
             store[folder] = []
             for file in (Path(".") / "content" / "imhex" / folder).iterdir():
                 if not file.is_dir():
                     with open(file, "rb") as fd:
-                        store[folder].append({
+                        data = {
                             "name": Path(file).stem.replace("_", " ").title(),
-                            "desc": "",
                             "file": file.name,
                             "url": f"{request.root_url}content/imhex/{folder}/{file.name}",
                             "hash": hashlib.sha256(fd.read()).hexdigest(),
-                            "folder": Path(file).suffix == ".tar"
-                            })
+                            "folder": Path(file).suffix == ".tar",
+
+                            "authors": [],
+                            "desc": "",
+                            "mime": "",
+                            }
+                        if folder == "patterns" and plcli_found:
+                            data["authors"] = list(filter(None, get_pattern_metadata(file, "authors").split("\n")))
+                            data["desc"] = get_pattern_metadata(file, "description")
+                            data["mime"] = get_pattern_metadata(file, "mime")
+                        store[folder].append(data)
 
         cache.set("store_up_to_date", True)
         cache.set("store", store)
