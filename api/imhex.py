@@ -19,7 +19,7 @@ import tarfile
 import requests
 
 from api.impl.imhex.telemetry import update_telemetry, increment_crash_count
-from api.impl.imhex.store import gen_store, store_folders
+from api.impl.imhex.store import gen_store, STORE_FOLDERS
 
 api_name = Path(__file__).stem
 app = Blueprint(api_name, __name__, url_prefix = "/" + api_name)
@@ -59,14 +59,14 @@ def update_data():
         os.makedirs(app_content_folder)
 
         print("Taring...")
-        for store_folder in store_folders:
+        for store_folder in STORE_FOLDERS:
             store_path = app_data_folder / "ImHex-Patterns" / store_folder
             for entry in store_path.iterdir():
                 if entry.is_dir():
                     shutil.make_archive(entry, "tar", entry)
 
         print("Copying...")
-        for folder in store_folders:
+        for folder in STORE_FOLDERS:
             shutil.copytree(app_data_folder / "ImHex-Patterns" / folder, app_content_folder / folder, False, shutil.ignore_patterns('_schema.json'))
 
         print("Done!");

@@ -10,7 +10,7 @@ import os
 import config
 
 
-store_folders = [ "patterns", "includes", "magic", "constants", "yara", "encodings", "nodes", "themes" ]
+STORE_FOLDERS = [ "patterns", "includes", "magic", "constants", "yara", "encodings", "nodes", "themes" ]
 
 async def get_pattern_metadata(file_path: str, type_: str) -> str:
     """
@@ -104,7 +104,7 @@ def gen_store(root_url: str) -> Dict[str, List[Dict]]:
         patterns_mds = None
 
     store = {}
-    for folder in store_folders:
+    for folder in STORE_FOLDERS:
         store[folder] = []
         for file in (Path(".") / "content" / "imhex" / folder).iterdir():
             if not file.is_dir():
