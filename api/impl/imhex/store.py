@@ -54,10 +54,12 @@ class PatternMetadata:
         self.description = (await get_pattern_metadata(self.filepath, "description")).strip()
 
     async def set_author(self):
-        self.authors = (await get_pattern_metadata(self.filepath, "authors")).strip().split("\n")
+        raw_data = await get_pattern_metadata(self.filepath, "authors")
+        self.authors = list(filter(None, raw_data.split("\n")))
 
     async def set_mime(self):
-        self.mime = (await get_pattern_metadata(self.filepath, "mime")).strip().split("\n")
+        raw_data = await get_pattern_metadata(self.filepath, "mime")
+        self.mime = list(filter(None, raw_data.split("\n")))
 
     def __repr__(self):
         return f"PatternMetadata(filepath={self.filepath},description={self.description},authors={self.authors})"
