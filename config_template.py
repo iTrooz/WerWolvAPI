@@ -3,15 +3,24 @@ import importlib
 from pathlib import Path
 
 class Common:
+    # Secret key used by the flask server. Can be any string value.
     SECRET = b''
 
-    DATA_FOLDER = ""
-    CONTENT_FOLDER = ""
+    # folder used for internal stuff, e.g. caching the repositories
+    DATA_FOLDER = "data"
+
+    # Folder exposed through the webserver at /content
+    CONTENT_FOLDER = "content"
 
 class ImHexApi:
+    # Secret used to verify GitHub's pushes to this API
     SECRET = b''
 
+    # webhook to ping when we get a new crash
     CRASH_WEBHOOK = ""
+
+    DATABASE_QUEUE_PERIOD = 0.1
+    DATABASE_RETRY_PERIOD = 1
 
 
 def setup():
