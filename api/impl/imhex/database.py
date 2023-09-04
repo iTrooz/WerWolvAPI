@@ -2,31 +2,59 @@ import sqlite3
 import atexit
 import config
 from pathlib import Path
+import uwsgidecorators
+import queue
+import time
+
+master_queue = queue.Queue()
+db_map: dict[str, 'async_database'] = {}
+
+@uwsgidecorators.postfork
+@uwsgidecorators.thread
+def database_worker():
+    while True:
+        item = master_queue.get() # wait for element to be available
+        # get database
+        db = db_map[item[0]]
+        # process query
+        result = db._process_queue_item(item[1])
+        if result == 'retry':
+            master_queue.put(item) # put item back into queue
+            time.sleep(db.retry_period)
+        elif result == 'failed':
+            print("Query failed.")
+
+        master_queue.task_done()
+
 
 class async_database:
 
-    def __init__(self, _database: sqlite3.Connection, *, queue_period = 0.1, retry_period = 1, error_callback = lambda e: None):
+    def __init__(self, name, _database: sqlite3.Connection, *, queue_period = 0.1, retry_period = 1, error_callback = lambda e: None):
+        self.name = name
         self._database = _database
-        self._query_queue = []
         self.queue_period = queue_period
         self.retry_period = retry_period
         self.error_callback = error_callback
         self.open = True
+        db_map[name] = self
+
+    def put(self, item):
+        master_queue.put((self.name, item))    
 
     def fetchone(self, query, data, callback):
-        self._query_queue.append((query, data, 'fetchone', callback))
+        self.put((query, data, 'fetchone', callback))
 
     def fetchall(self, query, data, callback):
-        self._query_queue.append((query, data, 'fetchall', callback))    
+        self.put((query, data, 'fetchall', callback))    
 
     def exists(self, table, field, data, *, exists=lambda: None, not_exists=lambda: None):
         self.fetchone(f"SELECT EXISTS(SELECT 1 FROM {table} WHERE {field} = ?)", data, lambda query_result: exists() if query_result[0] == 1 else not_exists())
 
     def commit(self):
-        self._query_queue.append((None, None, 'commit', None))
+        self.put((None, None, 'commit', None))
         
     def update(self, query, data):
-        self._query_queue.append((query, data, 'update', None))
+        self.put((query, data, 'update', None))
 
     def execute(self, query, data):
         self.update(query, data)    
@@ -34,6 +62,7 @@ class async_database:
     def close(self):
         self.open = False
         self._database.close()
+        del db_map[self.name]
 
     def _process_queue_item(self, item):
         try:
@@ -51,7 +80,7 @@ class async_database:
                     self._database.commit()
         except sqlite3.OperationalError as e:
             self.error_callback(e)
-            print(e)
+            print(e, item)
             if e.sqlite_errorname == 'database is locked':
                 return 'retry'
             else:
@@ -59,23 +88,7 @@ class async_database:
         except sqlite3.ProgrammingError as e:
             print(item)    
         return 'ok'
-    
-    def _begin_query_process(self):
-        import time
-        while self.open:
-            if len(self._query_queue) > 0:
-                # wait for queue period
-                time.sleep(self.queue_period)
-                item = self._query_queue.pop(0)
-                result = self._process_queue_item(item)
-                if result == 'retry':
-                    self._query_queue.insert(0, item)
-                    time.sleep(self.retry_period)
-                elif result == 'failed':
-                    print("Query failed.")
 
-                
-    
 def define_database(name, tables, path=None, *, queue_period = 0.1, retry_period = 1, error_callback = lambda e: None):
     db_file = path or Path(config.Common.DATA_FOLDER) / f"{name}.db"
 
@@ -87,12 +100,7 @@ def define_database(name, tables, path=None, *, queue_period = 0.1, retry_period
     # connect to database
     db = sqlite3.connect(db_file, check_same_thread = False)
 
-    db_object = async_database(db, queue_period = queue_period, retry_period = retry_period)
-    
-    # start query processing thread
-    import threading
-    process_thread = threading.Thread(target=db_object._begin_query_process, daemon=True)
-    process_thread.start()
+    db_object = async_database(name, db, queue_period = queue_period, retry_period = retry_period)
 
     # build database structure
     for table_name, structure in tables.items():
@@ -101,7 +109,6 @@ def define_database(name, tables, path=None, *, queue_period = 0.1, retry_period
     # make sure database is closed on exit
     def shutdown():
         db_object.close()
-        process_thread.join()
 
     atexit.register(shutdown)
 
